@@ -22,7 +22,7 @@
    (get-string-property MIDIObjectGetStringProperty [void* void* void*] int)
    (get-entity MIDIDeviceGetEntity [void* int] void*)
    (get-source MIDIEntityGetSource [void* int] void*)
-   (connect-source MIDIPortConnectSource [void* void* void*])
+   (connect-source* MIDIPortConnectSource [void* void* void*])
    ))
 
 (defclib foundation-lib
@@ -67,15 +67,20 @@
         status    (create-client* (cfstr name) cb nil clientvar)]
     (if-not (= 0 status)
       (throw (Exception. "Error creating client:" status))
-      (.getPointer clientvar 0))))
+      {:raw-client (.getPointer clientvar 0)
+       :callback   cb})))
 
 (defn create-input-port [client name read-fn]
   (let [cb      (callback packet-cb read-fn)
         portvar (Memory. Pointer/SIZE)
-        status    (create-input-port* client (cfstr name) cb nil portvar)]
+        status    (create-input-port* (:raw-client client) (cfstr name) cb nil portvar)]
     (if-not (= 0 status)
       (throw (Exception. "Error creating port:" status))
-      (.getPointer portvar 0))))
+      {:raw-port (.getPointer portvar 0)
+       :callback cb})))
+
+(defn connect-source [port source data]
+  (connect-source* (:raw-port port) source data))
 
 (defn -main []
   (init)
@@ -83,9 +88,9 @@
   (println "The first device has name" (get-name (get-device 0)))
   (println "found" (get-name (find-device-by-name "nanoKONTROL")))
   (let [client (create-client "client" (fn [& more] (println "got notify")))
-        _      (println "got client" (get-name client))
+        _      (println "got client" (get-name (:raw-client client)))
         port   (create-input-port client "port" (fn [& more] (println "got packets")))
-        _      (println "got port" (get-name port))
+        _      (println "got port" (get-name (:raw-port port)))
         device (find-device-by-name "nanoKONTROL")
         _      (println "got device" (get-name device))
         source (get-source (get-entity device 0) 0)
@@ -93,5 +98,5 @@
     (connect-source port source nil)
     (while true
       (Thread/sleep 1000)
-      (println "ping"))
+      (println port client))
     ))
