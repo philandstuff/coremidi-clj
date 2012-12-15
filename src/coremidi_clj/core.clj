@@ -18,11 +18,8 @@
 
 (defclib foundation-lib
   (:libname "Foundation")
-  (:structs
-   (CFRange :location long, :length long)) ;; CFIndex is a native long
   (:functions
    (cfstring-create CFStringCreateWithCString [void* constchar* int] void*)
-   (cfstring-find   CFStringFind [void* void* int] CFRange)
    (cfstring-length CFStringGetLength [void*] int)
    (cfstring-cheat  CFStringGetCStringPtr [void* int] constchar*)
    (cfstring-to-string CFStringGetCString [void* byte* int int] byte)
@@ -39,16 +36,11 @@
 (defn cfstr [s]
   (cfstring-create nil s kCFStringEncodingMacRoman))
 
-(defn- get-name* [obj]
+(defn get-name [obj]
   (let [namevar (Memory. Pointer/SIZE)
         status  (get-string-property obj (.getPointer kMIDIPropertyName 0) namevar)]
     (when status
       (cfstring-cheat (.getPointer namevar 0) kCFStringEncodingMacRoman))))
-
-(defn get-name [obj]
-  (let [thename (get-name* obj)]
-    (println "got name for" thename)
-    thename))
 
 (defn devices []
   (for [i (range (num-devices))]
@@ -62,11 +54,4 @@
   (init)
   (println "There are" (num-devices) "devices")
   (println "The first device has name" (get-name (get-device 0)))
-  (println "found" (get-name (find-device-by-name "nanoKONTROL")))
-  (println "find foo in barfoobaz:" (cfstring-find (cfstr "barfoobaz")
-                                                   (cfstr "foo")
-                                                   0))
-  (println "find foo in barboobaz:" (cfstring-find (cfstr "barboobaz")
-                                                   (cfstr "foo")
-                                                   0))
-  )
+  (println "found" (get-name (find-device-by-name "nanoKONTROL"))))
