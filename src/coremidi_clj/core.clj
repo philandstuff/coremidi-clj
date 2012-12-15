@@ -1,5 +1,7 @@
 (ns coremidi-clj.core
-  (:use [clj-native.direct :only [defclib loadlib]]))
+  (:use [clj-native.direct :only [defclib loadlib]]
+        [clj-native.dynamic :only [defcvar]])
+  (:import [com.sun.jna Pointer Memory]))
 
 ;; type mappings:
 ;; MIDI*Ref    == void* (opaque) (where * = Object,Device,Entity etc)
@@ -12,7 +14,7 @@
    (num-devices MIDIGetNumberOfDevices [] int)
    (get-device MIDIGetDevice [int] void*)
    (create-client MIDIClientCreate [])
-   #_(get-string-property MIDIObjectGetStringProperty [void* void* void**] int)))
+   (get-string-property MIDIObjectGetStringProperty [void* void* void*] int)))
 
 (defclib foundation-lib
   (:libname "Foundation")
@@ -32,20 +34,23 @@
 
 (def kCFStringEncodingMacRoman 0)
 
+(defcvar coremidi/kMIDIPropertyName)
+
 (defn cfstr [s]
   (cfstring-create nil s kCFStringEncodingMacRoman))
 
-(defn device-has-name [name]
-  (fn [device]
-    
-    ))
-
-(defn find-device-by-name [name]
-  (some (device-has-name name) (map get-device (range (num-devices)))))
+(defn get-name [obj]
+  (let [namevar (Memory. Pointer/SIZE)
+        _       (println "created namevar")
+        status  (get-string-property obj (.getPointer kMIDIPropertyName 0) namevar)]
+    (println "called property get")
+    (when status
+      (cfstring-cheat (.getPointer namevar 0) kCFStringEncodingMacRoman))))
 
 (defn -main []
   (init)
   (println "There are" (num-devices) "devices")
+  (println "The first device has name" (get-name (get-device 0)))
   #_(println "found" (find-device-by-name "nanoKONTROL"))
   (println "find foo in barfoobaz:" (cfstring-find (cfstr "barfoobaz")
                                                    (cfstr "foo")
