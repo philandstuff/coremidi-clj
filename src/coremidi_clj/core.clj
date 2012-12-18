@@ -11,6 +11,12 @@
 
 (defclib coremidi-lib
   (:libname "coremidi")
+  ;; These are the notional structs, but they use the struct hack
+  ;; and anyway are called by the callback and clj-native only
+  ;; supports void* pointers for callbacks
+  #_(:structs
+   (MIDIPacket :timestamp i64, :length i16, :data byte[256])
+   (MIDIPacketList :num-packets i32, :packets MIDIPacket))
   (:callbacks
    (notify-cb [void* void*])
    (packet-cb [void* void* void*]))
@@ -82,6 +88,44 @@
 (defn connect-source [port source data]
   (connect-source* (:raw-port port) source data))
 
+;; struct MIDIPacket {
+;;     MIDITimeStamp timeStamp; /* 64-bit */
+;;     UInt16        length;    /* 16-bit */
+;;     Byte          data[length]; /* variable-length */
+;; };
+;; Note that struct alignment is unaligned on Intel processors.
+(defn read-packet
+  "Reads a MIDIPacket structure from a JNA Pointer object. Assumes the struct is unaligned (correct on Intel arch)."
+  [ptr]
+  (let [timestamp  (.getLong  ptr 0)
+        size       (.getShort ptr 8)
+        data-array (.getByteArray ptr 10 size)]
+    {:timestamp timestamp
+     :size      size
+     :data      (into [] (map #(bit-and 0xff %) (seq data-array)))}))
+
+(defn decode-controller-change [bytes]
+  (let [[status controller value] bytes]
+    {:type       :controller-change
+     :controller controller
+     :value      value}))
+
+(defn decode-packet [packet]
+  (let [status-byte   (first (:data packet))
+        status-nybble (unchecked-divide-int status-byte 16)]
+    (case status-nybble
+      0xb (decode-controller-change (:data packet))
+      :unknown-midi-message)))
+
+(defn read-packet-list [ptr]
+  (let [num-packets (.getInt ptr 0)
+        packet-base (.share ptr 4)]
+    (loop [packets [] num-packets num-packets packet-base packet-base]
+      (if (zero? num-packets)
+        packets
+        (let [packet (read-packet packet-base)]
+          (recur (conj packets packet) (dec num-packets) (.share packet-base (+ 10 (:size packet)))))))))
+
 (defn -main []
   (init)
   (println "There are" (num-devices) "devices")
@@ -89,7 +133,7 @@
   (println "found" (get-name (find-device-by-name "nanoKONTROL")))
   (let [client (create-client "client" (fn [& more] (println "got notify")))
         _      (println "got client" (get-name (:raw-client client)))
-        port   (create-input-port client "port" (fn [& more] (println "got packets")))
+        port   (create-input-port client "port" (fn [packet-list & more] (println "got packet list:" (map decode-packet (read-packet-list packet-list)))))
         _      (println "got port" (get-name (:raw-port port)))
         device (find-device-by-name "nanoKONTROL")
         _      (println "got device" (get-name device))
