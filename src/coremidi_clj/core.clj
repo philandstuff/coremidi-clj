@@ -104,6 +104,15 @@
      :size      size
      :data      (into [] (map #(bit-and 0xff %) (seq data-array)))}))
 
+(defn read-packet-list [ptr]
+  (let [num-packets (.getInt ptr 0)
+        packet-base (.share ptr 4)]
+    (loop [packets [] num-packets num-packets packet-base packet-base]
+      (if (zero? num-packets)
+        packets
+        (let [packet (read-packet packet-base)]
+          (recur (conj packets packet) (dec num-packets) (.share packet-base (+ 10 (:size packet)))))))))
+
 (defn decode-controller-change [bytes]
   (let [[status controller value] bytes]
     {:type       :controller-change
@@ -117,29 +126,39 @@
       0xb (decode-controller-change (:data packet))
       :unknown-midi-message)))
 
-(defn read-packet-list [ptr]
-  (let [num-packets (.getInt ptr 0)
-        packet-base (.share ptr 4)]
-    (loop [packets [] num-packets num-packets packet-base packet-base]
-      (if (zero? num-packets)
-        packets
-        (let [packet (read-packet packet-base)]
-          (recur (conj packets packet) (dec num-packets) (.share packet-base (+ 10 (:size packet)))))))))
+(defonce ^:private midi-client (atom nil))
+
+(defn- create-client-if-nil [client]
+  (if client
+    client
+    (create-client "CoreMIDI clj client" (fn [& more] (println "got notify msg")))))
+
+(defn- get-midi-client []
+  (when (nil? @midi-client)
+    (swap! midi-client create-client-if-nil))
+  @midi-client)
+
+(defn connect-to-source [source f]
+  (let [port (create-input-port (get-midi-client) "port" f)
+        _    (println "got port" (get-name (:raw-port port)))]
+    (connect-source port source nil)
+    port))
 
 (defn -main []
   (init)
   (println "There are" (num-devices) "devices")
   (println "The first device has name" (get-name (get-device 0)))
   (println "found" (get-name (find-device-by-name "nanoKONTROL")))
-  (let [client (create-client "client" (fn [& more] (println "got notify")))
+  (let [client (get-midi-client)
         _      (println "got client" (get-name (:raw-client client)))
-        port   (create-input-port client "port" (fn [packet-list & more] (println "got packet list:" (map decode-packet (read-packet-list packet-list)))))
-        _      (println "got port" (get-name (:raw-port port)))
         device (find-device-by-name "nanoKONTROL")
         _      (println "got device" (get-name device))
         source (get-source (get-entity device 0) 0)
-        _      (println "got source (get-name source")]
-    (connect-source port source nil)
+        _      (println "got source (get-name source")
+        port   (connect-to-source source
+                                  (fn [packet-list & more]
+                                    (println "got packet list:"
+                                             (map decode-packet (read-packet-list packet-list)))))]
     (while true
       (Thread/sleep 1000)
       (println port client))
