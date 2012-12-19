@@ -1,5 +1,6 @@
 (ns coremidi-clj.coremidi
-  (:require [coremidi-clj.coremidi.native :as native])
+  (:require [coremidi-clj.coremidi.native :as native]
+            [coremidi-clj.coremidi.decode :as decode])
   (:use     [clj-native.callbacks :only [callback]])
   (:import  [com.sun.jna Pointer Memory]))
 
@@ -59,4 +60,8 @@
     (connect-source port source nil)
     port))
 
-
+(defn midi-handle-events [source handler]
+  (let [callback (fn [packet-list & more]
+                   (doseq [packet (native/read-packet-list packet-list)]
+                     (handler (decode/decode-packet packet) (:timestamp packet))))]
+    (connect-to-source source callback)))

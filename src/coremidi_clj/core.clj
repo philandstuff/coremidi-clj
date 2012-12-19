@@ -1,15 +1,12 @@
 (ns coremidi-clj.core
-  (:use coremidi-clj.coremidi)
-  (:require [coremidi-clj.coremidi.decode :as decode]
-            [coremidi-clj.coremidi.native :as native]))
+  (:use coremidi-clj.coremidi))
 
 (defn -main []
   (native/init)
   (let [source (midi-in "nanoKONTROL")
-        port   (connect-to-source source
-                                  (fn [packet-list & more]
-                                    (println "got packet list:"
-                                             (map decode/decode-packet (native/read-packet-list packet-list)))))]
+        port   (midi-handle-events source
+                                  (fn [packet timestamp]
+                                    (println timestamp "got packet:" packet)))]
     (while true
       (Thread/sleep 1000)
       (println port))
