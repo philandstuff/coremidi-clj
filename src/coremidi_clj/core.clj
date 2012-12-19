@@ -149,17 +149,13 @@
   (println "There are" (num-devices) "devices")
   (println "The first device has name" (get-name (get-device 0)))
   (println "found" (get-name (find-device-by-name "nanoKONTROL")))
-  (let [client (get-midi-client)
-        _      (println "got client" (get-name (:raw-client client)))
-        device (find-device-by-name "nanoKONTROL")
-        _      (println "got device" (get-name device))
+  (let [device (find-device-by-name "nanoKONTROL")
         source (get-source (get-entity device 0) 0)
-        _      (println "got source (get-name source")
         port   (connect-to-source source
                                   (fn [packet-list & more]
                                     (println "got packet list:"
                                              (map decode-packet (read-packet-list packet-list)))))]
     (while true
       (Thread/sleep 1000)
-      (println port client))
+      (println port (get-midi-client)))
     ))
