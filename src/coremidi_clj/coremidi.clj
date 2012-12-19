@@ -3,10 +3,6 @@
   (:use     [clj-native.callbacks :only [callback]])
   (:import  [com.sun.jna Pointer Memory]))
 
-;; ensure the CoreMIDI library is loaded
-(defonce ^:private ensure-loaded
-  (native/init))
-
 (defn devices []
   (for [i (range (native/num-devices))]
     (native/get-device i)))
@@ -62,4 +58,5 @@
         _    (println "got port" (native/get-name (:raw-port port)))]
     (connect-source port source nil)
     port))
+
 
