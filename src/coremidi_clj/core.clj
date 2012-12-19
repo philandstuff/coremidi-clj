@@ -4,7 +4,6 @@
             [coremidi-clj.coremidi.native :as native]))
 
 (defn -main []
-  (native/init)
   (let [source (midi-in "nanoKONTROL")
         port   (connect-to-source source
                                   (fn [packet-list & more]

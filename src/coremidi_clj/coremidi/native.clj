@@ -84,6 +84,3 @@
         (let [packet (read-packet packet-base)]
           (recur (conj packets packet) (dec num-packets) (.share packet-base (+ 10 (:size packet)))))))))
 
-;; ensure the CoreMIDI library is loaded
-#_(defonce ^:private ensure-loaded
-  (init))
