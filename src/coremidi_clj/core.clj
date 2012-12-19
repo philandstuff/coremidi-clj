@@ -138,6 +138,15 @@
     (swap! midi-client create-client-if-nil))
   @midi-client)
 
+;; TODO: devices with multiple entities? Entities with multiple sources?
+(defn midi-in [in]
+  (if-let [device (find-device-by-name in)]
+    (let [entity (get-entity device 0)
+          source (get-source entity 0)]
+      source)
+    (println "Did not find a matching midi input device for:" in)))
+
+;; TODO: keep the callback object somewhere so that it won't get GC'd
 (defn connect-to-source [source f]
   (let [port (create-input-port (get-midi-client) "port" f)
         _    (println "got port" (get-name (:raw-port port)))]
@@ -149,8 +158,7 @@
   (println "There are" (num-devices) "devices")
   (println "The first device has name" (get-name (get-device 0)))
   (println "found" (get-name (find-device-by-name "nanoKONTROL")))
-  (let [device (find-device-by-name "nanoKONTROL")
-        source (get-source (get-entity device 0) 0)
+  (let [source (midi-in "nanoKONTROL")
         port   (connect-to-source source
                                   (fn [packet-list & more]
                                     (println "got packet list:"
