@@ -1,5 +1,6 @@
 (ns coremidi-clj.core
-  (:use coremidi-clj.coremidi))
+  (:use coremidi-clj.coremidi)
+  (:require [coremidi-clj.coremidi.native :as native]))
 
 (defn -main []
   (native/init)
