@@ -24,10 +24,13 @@
    (get-device MIDIGetDevice [int] void*)
    (create-client* MIDIClientCreate [void* notify-cb void* void*] int)
    (create-input-port* MIDIInputPortCreate [void* void* packet-cb void* void*] int)
+   (create-output-port* MIDIOutputPortCreate [void* void* void*] int)
    (get-string-property MIDIObjectGetStringProperty [void* void* void*] int)
    (get-entity MIDIDeviceGetEntity [void* int] void*)
    (get-source MIDIEntityGetSource [void* int] void*)
+   (get-destination MIDIEntityGetDestination [void* int] void*)
    (connect-source* MIDIPortConnectSource [void* void* void*])
+   (midi-send* MIDISend [void* void* void*] int)
    ))
 
 (defclib foundation-lib
@@ -83,6 +86,18 @@
         packets
         (let [packet (read-packet packet-base)]
           (recur (conj packets packet) (dec num-packets) (.share packet-base (+ 10 (:size packet)))))))))
+
+(defn- write-bytes-to-packet [^Pointer ptr bytes]
+  (doto ptr
+    (.setLong  0 0) ;; timeStamp; 0 means "now"
+    (.setShort 8 (count bytes)) ;; size
+    (.write    10 (into-array Byte/TYPE bytes) 0 (count bytes)))
+  )
+
+(defn write-bytes-to-packet-list [ptr bytes]
+  (.setInt ptr 0 1) ;; numPackets
+  (write-bytes-to-packet (.share ptr 4) bytes)
+  )
 
 ;; ensure the CoreMIDI library is loaded
 #_(defonce ^:private ensure-loaded
