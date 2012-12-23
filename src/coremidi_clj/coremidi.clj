@@ -83,8 +83,8 @@
     (connect-to-source source callback)))
 
 ;; FIXME: Assumes no alignment padding :/
-(defn- midi-send [sink byte-seq-or-array]
-  (let [num-midi-bytes  (count byte-seq-or-array)
+(defn- midi-send [sink byte-seq]
+  (let [num-midi-bytes  (count byte-seq)
         num-total-bytes (+
                          4 ;; UInt32 numPackets
                          8 ;; MIDITimestamp timestamp
@@ -92,7 +92,7 @@
                          num-midi-bytes ;; Byte data[length]
                          )
         list-ptr (Memory. num-total-bytes)]
-    (native/write-bytes-to-packet-list list-ptr byte-seq-or-array)
+    (native/write-bytes-to-packet-list list-ptr byte-seq)
     (native/midi-send* (:port sink) (:dest sink) list-ptr)))
 
 (defn midi-sysex [sink byte-seq]
