@@ -41,12 +41,21 @@
 (defn- create-client-if-nil [client]
   (if client
     client
-    (create-client "CoreMIDI clj client" (fn [& more] (println "got notify msg")))))
+    (let [client (create-client "CoreMIDI clj client" (fn [& more] (println "got notify msg")))
+          port   (create-output-port client "output port")]
+      {:client      client
+       :output-port port})))
 
-(defn- get-midi-client []
+(defn- get-midi-state []
   (when (nil? @midi-client)
     (swap! midi-client create-client-if-nil))
   @midi-client)
+
+(defn- get-midi-client []
+  (:client (get-midi-state)))
+
+(defn- get-midi-output-port []
+  (:output-port (get-midi-state)))
 
 (defn- find-device-by-name [name]
   (let [re (re-pattern name)]
@@ -63,10 +72,8 @@
 (defn midi-out [out]
   (if-let [device (find-device-by-name out)]
     (let [entity (native/get-entity device 0)
-          dest   (native/get-destination entity 0)
-          port   (create-output-port (get-midi-client) "output port")]
-      {:dest dest
-       :port port})
+          dest   (native/get-destination entity 0)]
+      dest)
     (println "Did not find a matching midi output device for:" out)))
 
 ;; TODO: keep the callback object somewhere so that it won't get GC'd
@@ -93,7 +100,7 @@
                          )
         list-ptr (Memory. num-total-bytes)]
     (native/write-bytes-to-packet-list list-ptr byte-seq)
-    (native/midi-send* (:port sink) (:dest sink) list-ptr)))
+    (native/midi-send* (get-midi-output-port) sink list-ptr)))
 
 (defn midi-sysex [sink byte-seq]
   (midi-send sink (seq byte-seq)))
