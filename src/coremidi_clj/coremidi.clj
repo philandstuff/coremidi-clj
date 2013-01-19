@@ -107,3 +107,7 @@
 
 (defn midi-control [sink ctl-num val]
   (midi-send sink [(- 0xb0 256) ctl-num val]))
+
+(defn midi-note-on
+  ([sink note] (midi-note-on sink note 64))
+  ([sink note vel] (midi-send sink [(- 0x90 256) note vel])))

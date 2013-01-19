@@ -46,7 +46,8 @@
 
 (defn init []
   (loadlib coremidi-lib)
-  (loadlib foundation-lib))
+  (loadlib foundation-lib)
+  nil)
 
 (def kCFStringEncodingMacRoman 0)
 

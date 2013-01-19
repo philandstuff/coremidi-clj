@@ -2,7 +2,6 @@
 
 A Clojure wrapper for the CoreMIDI library from OS X.
 
-
 * Usage
 
 #+BEGIN_SRC clojure
@@ -10,7 +9,7 @@ A Clojure wrapper for the CoreMIDI library from OS X.
   (midi-handle-events lp-in (fn [packet timestamp] (comment "react to incoming packet here...")))
 
   (def lp-out (midi-out "Launchpad"))
-  (midi-note-on lp-out 48)
+  (midi-note-on lp-out 48 63)
 #+END_SRC
 
 * License
