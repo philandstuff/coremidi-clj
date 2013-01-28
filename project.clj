@@ -1,4 +1,4 @@
-(defproject coremidi-clj "0.1.0-SNAPSHOT"
+(defproject philandstuff/coremidi-clj "0.1.0-SNAPSHOT"
   :description "CoreMIDI wrapper for Clojure"
   :url "https://github.com/philandstuff/coremidi-clj"
   :license {:name "Eclipse Public License"
