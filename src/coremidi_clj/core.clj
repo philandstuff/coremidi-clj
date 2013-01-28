@@ -1,6 +1,5 @@
 (ns coremidi-clj.core
-  (:use coremidi-clj.coremidi)
-  (:require [coremidi-clj.coremidi.native :as native]))
+  (:use coremidi-clj.coremidi))
 
 ;; Magic sysex messages (recorded from Korg Kontrol Editor output)
 (def start-sysex [-16 126 127 6 1 -9])
@@ -40,7 +39,6 @@
   (dotimes [n 100] (midi-control nko n 127)))
 
 (defn -main []
-  (native/init)
   (let [source  (midi-in "nanoKONTROL")
         in-port (midi-handle-events source
                                     (fn [packet timestamp]

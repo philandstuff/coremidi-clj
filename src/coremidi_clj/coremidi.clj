@@ -66,7 +66,8 @@
   (if-let [device (find-device-by-name in)]
     (let [entity (native/get-entity device 0)
           source (native/get-source entity 0)]
-      source)
+      {:source      source
+       :input-ports (atom ())})
     (println "Did not find a matching midi input device for:" in)))
 
 (defn midi-out [out]
@@ -76,18 +77,17 @@
       dest)
     (println "Did not find a matching midi output device for:" out)))
 
-;; TODO: keep the callback object somewhere so that it won't get GC'd
-(defn connect-to-source [source f]
-  (let [port (create-input-port (get-midi-client) "port" f)
-        _    (println "got port" (native/get-name (:raw-port port)))]
-    (connect-source port source nil)
-    port))
+(defn connect-to-source [input f]
+  (let [port (create-input-port (get-midi-client) "port" f)]
+    (connect-source port (:source input) nil)
+    (swap! (:input-ports input) conj port)
+    nil))
 
-(defn midi-handle-events [source handler]
+(defn midi-handle-events [input handler]
   (let [callback (fn [packet-list & more]
                    (doseq [packet (native/read-packet-list packet-list)]
                      (handler (decode/decode-packet packet) (:timestamp packet))))]
-    (connect-to-source source callback)))
+    (connect-to-source input callback)))
 
 ;; FIXME: Assumes no alignment padding :/
 (defn- midi-send [sink byte-seq]
