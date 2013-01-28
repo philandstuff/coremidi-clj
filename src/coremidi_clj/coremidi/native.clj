@@ -101,5 +101,5 @@
   )
 
 ;; ensure the CoreMIDI library is loaded
-#_(defonce ^:private ensure-loaded
+(defonce ^:private ensure-loaded
   (init))
